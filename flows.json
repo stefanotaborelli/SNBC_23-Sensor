@@ -1,0 +1,535 @@
+[
+    {
+        "id": "c87d0832ae5295be",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "eddd9577abec05ce",
+        "type": "inject",
+        "z": "c87d0832ae5295be",
+        "name": "Sensor 1 (Città Studi)",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            },
+            {
+                "p": "latitude",
+                "v": "45.477977",
+                "vt": "str"
+            },
+            {
+                "p": "longitude",
+                "v": "9.227728",
+                "vt": "str"
+            },
+            {
+                "p": "id_sensor",
+                "v": "10869234",
+                "vt": "str"
+            },
+            {
+                "p": "timestamp",
+                "v": "",
+                "vt": "date"
+            }
+        ],
+        "repeat": "300",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "79",
+        "topic": "Sensor 1",
+        "payload": "",
+        "payloadType": "str",
+        "x": 260,
+        "y": 440,
+        "wires": [
+            [
+                "27204d2869e15695"
+            ]
+        ]
+    },
+    {
+        "id": "27204d2869e15695",
+        "type": "function",
+        "z": "c87d0832ae5295be",
+        "name": "function 4",
+        "func": "let index = msg.timestamp % 1000;\nlet payload ={\n    id_sensor: msg.id_sensor,\n    type: \"loudeness\",\n    timestamp: msg.timestamp,\n    latitude: msg.latitude,\n    longitude: msg.longitude,\n    value: flow.get(\"sensor_data\")[index].value\n}\n\nlet new_msg={\n    _msgid: msg._msgid,\n    topic: msg.topic,\n    payload: payload\n}\n\n\nlet data = flow.get(\"data\");\ndata.push(payload);\nflow.set(\"data\", data);\n\nreturn new_msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 460,
+        "wires": [
+            [
+                "178e9a924351aaba"
+            ]
+        ]
+    },
+    {
+        "id": "8cc791403b0ce14d",
+        "type": "file in",
+        "z": "c87d0832ae5295be",
+        "name": "",
+        "filename": "C:\\Users\\Tabo\\Desktop\\Smart\\random_values.csv",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 570,
+        "y": 180,
+        "wires": [
+            [
+                "83aa963ad5e810d2"
+            ]
+        ]
+    },
+    {
+        "id": "bdad9aea5326c757",
+        "type": "inject",
+        "z": "c87d0832ae5295be",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 250,
+        "y": 160,
+        "wires": [
+            [
+                "8cc791403b0ce14d"
+            ]
+        ]
+    },
+    {
+        "id": "b166e96a169c4e98",
+        "type": "debug",
+        "z": "c87d0832ae5295be",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1140,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "4a720de9a2b9e667",
+        "type": "mqtt in",
+        "z": "c87d0832ae5295be",
+        "name": "",
+        "topic": "/smartcity/milan",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "6f82b521179c2fba",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 340,
+        "y": 320,
+        "wires": [
+            [
+                "744f3195d7b49dba"
+            ]
+        ]
+    },
+    {
+        "id": "8e816ab2afc8d325",
+        "type": "debug",
+        "z": "c87d0832ae5295be",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 780,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "744f3195d7b49dba",
+        "type": "function",
+        "z": "c87d0832ae5295be",
+        "name": "function 1",
+        "func": "let payload = {\n    id_sensor : null,\n    type: \"pm25\",\n    timestamp : null,\n    longitude : null,\n    latitude : null,\n    value: 0,\n};\n\n\nif (msg.payload.sensordatavalues[1].value_type == \"P2\") {\n    let val_PM25 = msg.payload.sensordatavalues[1].value;\n    let data = flow.get(\"data\");\n\n    //let id = msg.payload.sensor.id;\n    // if (!sensors.includes(id)) {\n    //     sensors.push(id);\n    //     flow.set(\"sensors_id\", sensors);\n    // }\n\n    payload.id_sensor = msg.payload.sensor.id;\n    payload.value = val_PM25;\n    payload.timestamp = msg.payload.timestamp;\n    payload.longitude = msg.payload.location.longitude;\n    payload.latitude = msg.payload.location.latitude;\n    data.push(payload),\n    flow.set(\"data\", data);\n\n    msg.payload = payload;\n    return msg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 560,
+        "y": 320,
+        "wires": [
+            [
+                "8e816ab2afc8d325"
+            ]
+        ]
+    },
+    {
+        "id": "83aa963ad5e810d2",
+        "type": "csv",
+        "z": "c87d0832ae5295be",
+        "name": "",
+        "sep": ",",
+        "hdrin": true,
+        "hdrout": "none",
+        "multi": "mult",
+        "ret": "\\n",
+        "temp": "",
+        "skip": "0",
+        "strings": true,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 910,
+        "y": 220,
+        "wires": [
+            [
+                "45134195ef1088ce"
+            ]
+        ]
+    },
+    {
+        "id": "45134195ef1088ce",
+        "type": "function",
+        "z": "c87d0832ae5295be",
+        "name": "function 5",
+        "func": "flow.set(\"sensor_data\", msg.payload);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\nflow.set(\"counter\",0);\nflow.set(\"data\",[]);\n",
+        "finalize": "",
+        "libs": [],
+        "x": 1100,
+        "y": 260,
+        "wires": [
+            [
+                "b166e96a169c4e98"
+            ]
+        ]
+    },
+    {
+        "id": "178e9a924351aaba",
+        "type": "debug",
+        "z": "c87d0832ae5295be",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 700,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "bebd36cebca1b59f",
+        "type": "inject",
+        "z": "c87d0832ae5295be",
+        "name": "Sensor 2 (Duomo)",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            },
+            {
+                "p": "latitude",
+                "v": "45.464081",
+                "vt": "str"
+            },
+            {
+                "p": "longitude",
+                "v": "9.192720",
+                "vt": "str"
+            },
+            {
+                "p": "id_sensor",
+                "v": "10608112",
+                "vt": "str"
+            },
+            {
+                "p": "timestamp",
+                "v": "",
+                "vt": "date"
+            }
+        ],
+        "repeat": "300",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "112",
+        "topic": "Sensor 1",
+        "payload": "",
+        "payloadType": "str",
+        "x": 270,
+        "y": 540,
+        "wires": [
+            [
+                "58f4795f33363ce3"
+            ]
+        ]
+    },
+    {
+        "id": "58f4795f33363ce3",
+        "type": "function",
+        "z": "c87d0832ae5295be",
+        "name": "function 6",
+        "func": "let index = msg.timestamp % 1000;\nlet payload = {\n    id_sensor: msg.id_sensor,\n    type: \"loudeness\",\n    timestamp: msg.timestamp,\n    latitude: msg.latitude,\n    longitude: msg.longitude,\n    value: flow.get(\"sensor_data\")[index].value\n}\n\nlet new_msg = {\n    _msgid: msg._msgid,\n    topic: msg.topic,\n    payload: payload\n}\n\n\nlet data = flow.get(\"data\");\ndata.push(payload);\nflow.set(\"data\", data);\n\nreturn new_msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 540,
+        "wires": [
+            [
+                "027ce9fa30a2a4f8"
+            ]
+        ]
+    },
+    {
+        "id": "027ce9fa30a2a4f8",
+        "type": "debug",
+        "z": "c87d0832ae5295be",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "2e39fdbea22e53cc",
+        "type": "inject",
+        "z": "c87d0832ae5295be",
+        "name": "Sensor 3 (Portello)",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            },
+            {
+                "p": "latitude",
+                "v": "45.485711",
+                "vt": "str"
+            },
+            {
+                "p": "longitude",
+                "v": "9.148767",
+                "vt": "str"
+            },
+            {
+                "p": "id_sensor",
+                "v": "10839718",
+                "vt": "str"
+            },
+            {
+                "p": "timestamp",
+                "v": "",
+                "vt": "date"
+            }
+        ],
+        "repeat": "300",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "47",
+        "topic": "Sensor 3",
+        "payload": "",
+        "payloadType": "str",
+        "x": 280,
+        "y": 620,
+        "wires": [
+            [
+                "cad340dd2010f809"
+            ]
+        ]
+    },
+    {
+        "id": "cad340dd2010f809",
+        "type": "function",
+        "z": "c87d0832ae5295be",
+        "name": "function 7",
+        "func": "let index = msg.timestamp % 1000;\nlet payload = {\n    id_sensor: msg.id_sensor,\n    type: \"loudeness\",\n    timestamp: msg.timestamp,\n    latitude: msg.latitude,\n    longitude: msg.longitude,\n    value: flow.get(\"sensor_data\")[index].value\n}\n\nlet new_msg = {\n    _msgid: msg._msgid,\n    topic: msg.topic,\n    payload: payload\n}\n\n\nlet data = flow.get(\"data\");\ndata.push(payload);\nflow.set(\"data\", data);\n\nreturn new_msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 620,
+        "wires": [
+            [
+                "e72eb14d9a4c38f4"
+            ]
+        ]
+    },
+    {
+        "id": "e72eb14d9a4c38f4",
+        "type": "debug",
+        "z": "c87d0832ae5295be",
+        "name": "debug 5",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "be632dcf2dab05c0",
+        "type": "inject",
+        "z": "c87d0832ae5295be",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "3600",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "3600",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 230,
+        "y": 720,
+        "wires": [
+            [
+                "e878383b3e0ef985"
+            ]
+        ]
+    },
+    {
+        "id": "e878383b3e0ef985",
+        "type": "function",
+        "z": "c87d0832ae5295be",
+        "name": "function 8",
+        "func": "msg.payload=flow.get(\"data\");\nflow.set(\"data\",[]);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 440,
+        "y": 720,
+        "wires": [
+            [
+                "71b4664ea4d5fd5a"
+            ]
+        ]
+    },
+    {
+        "id": "d30777b5b88b866e",
+        "type": "debug",
+        "z": "c87d0832ae5295be",
+        "name": "debug 6",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 940,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "71b4664ea4d5fd5a",
+        "type": "json",
+        "z": "c87d0832ae5295be",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 590,
+        "y": 720,
+        "wires": [
+            [
+                "d30777b5b88b866e"
+            ]
+        ]
+    },
+    {
+        "id": "6f82b521179c2fba",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "mqtt.neslab.it",
+        "port": "3200",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    }
+]
