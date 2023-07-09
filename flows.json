@@ -1,16 +1,733 @@
 [
     {
-        "id": "c87d0832ae5295be",
+        "id": "029b4e24288770d8",
         "type": "tab",
-        "label": "Flow 1",
+        "label": "Server",
         "disabled": false,
         "info": "",
         "env": []
     },
     {
-        "id": "eddd9577abec05ce",
+        "id": "ff394802d22b8f3a",
+        "type": "tab",
+        "label": "Sensor",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "6f82b521179c2fba",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "mqtt.neslab.it",
+        "port": "3200",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "28b87b0bd47308d2",
+        "type": "mqtt in",
+        "z": "029b4e24288770d8",
+        "name": "",
+        "topic": "/smartcity/milan",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "6f82b521179c2fba",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 220,
+        "y": 360,
+        "wires": [
+            [
+                "d716759248464592"
+            ]
+        ]
+    },
+    {
+        "id": "8afd09b669f2b1da",
+        "type": "debug",
+        "z": "029b4e24288770d8",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 920,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "50213e285ef0b952",
         "type": "inject",
-        "z": "c87d0832ae5295be",
+        "z": "029b4e24288770d8",
+        "name": "Hour Update",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "0 0-22 * * *",
+        "once": false,
+        "onceDelay": "3600",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 180,
+        "y": 480,
+        "wires": [
+            [
+                "c164870eb9e164c3"
+            ]
+        ]
+    },
+    {
+        "id": "c164870eb9e164c3",
+        "type": "function",
+        "z": "029b4e24288770d8",
+        "name": "Preprocessing, Mean, Reset \"data\"",
+        "func": "let all_data = flow.get(\"data\");\n\nlet dateObj;\n\nlet hourly_data_array =[];\n\nfor (let index = 0; index<all_data.length; index++) {\n    let hourly_data = {\n        id_sensor: null,\n        type: null,\n        time: null,\n        dayOfWeek: null,\n        date: null,\n        sum: 0,\n        counter: 1\n    }\n    let found =false;\n    // Checking if there is a value stored into hourly_data_array for that sensor\n    for (let j = 0; j < hourly_data_array.length; j++){\n        // If found update value and exiting from loop\n        if ((all_data[index]).id_sensor == (hourly_data_array[j]).id_sensor){\n            (hourly_data_array[j]).sum += (all_data[index]).value;\n            (hourly_data_array[j]).counter++;\n            found = true;\n            break;\n        }\n    }\n\n    // Otherwise adding a new value for that sensor\n    if (!found){\n        // Add a new sensor to hourly_data_array\n        hourly_data.type=(all_data[index]).type;\n        hourly_data.counter=1;\n        hourly_data.id_sensor = (all_data[index]).id_sensor;\n        hourly_data.sum = (all_data[index]).value;\n\n\n        dateObj = new Date(msg.payload);\n        dateObj.setHours(dateObj.getHours() - 1);\n        hourly_data.time = dateObj.getHours();\n        hourly_data.dayOfWeek = dateObj.getDay();\n        hourly_data.date =dateObj.getDate() + \"/\" + (Number(dateObj.getMonth()) + 1) + \"/\" + dateObj.getFullYear();\n\n\n        hourly_data_array.push(hourly_data);\n        \n    }\n}\n\nlet mean_list = [];\n// Compute all median value\n\n\nfor (let index = 0; index < hourly_data_array.length; index++) {\n\n    let mean_item = {\n        id_sensor: null,\n        type: null,\n        time: null,\n        dayOfWeek: null,\n        date: null,\n        mean: 0\n    }\n    mean_item.id_sensor = (hourly_data_array[index]).id_sensor;\n    mean_item.type = (hourly_data_array[index]).type;\n    mean_item.time =(hourly_data_array[index]).time;\n    mean_item.dayOfWeek = (hourly_data_array[index]).dayOfWeek;\n    mean_item.date = (hourly_data_array[index]).date;\n    mean_item.mean = (hourly_data_array[index]).sum / (hourly_data_array[index]).counter;\n    mean_list.push(mean_item);\n}\n\nlet msg1= {\n    _msgid: msg._msgid,\n    topic: msg.topic,\n    payload: all_data\n}\nlet msg2 = {\n    _msgid: msg._msgid,\n    topic: msg.topic,\n    payload: mean_list\n}\nflow.set(\"data\",[]);\nreturn [msg1,msg2];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\nflow.set(\"debug\", [])",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 520,
+        "wires": [
+            [
+                "f2b828f211e2c559"
+            ],
+            [
+                "5946e853fe87936c"
+            ]
+        ]
+    },
+    {
+        "id": "379fe83d04e74ef2",
+        "type": "e-mail",
+        "z": "029b4e24288770d8",
+        "server": "mail.smtp2go.com",
+        "port": "2525",
+        "authtype": "BASIC",
+        "saslformat": true,
+        "token": "oauth2Response.access_token",
+        "secure": false,
+        "tls": true,
+        "name": "99checco99@gmail.com",
+        "dname": "",
+        "x": 710,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "f2b828f211e2c559",
+        "type": "csv",
+        "z": "029b4e24288770d8",
+        "name": "",
+        "sep": ",",
+        "hdrin": "",
+        "hdrout": "once",
+        "multi": "one",
+        "ret": "\\n",
+        "temp": "id_sensor,type,time,latitude,longitude,value",
+        "skip": "0",
+        "strings": false,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 810,
+        "y": 420,
+        "wires": [
+            [
+                "8609af392fe183f4"
+            ]
+        ]
+    },
+    {
+        "id": "8609af392fe183f4",
+        "type": "file",
+        "z": "029b4e24288770d8",
+        "name": "Storing dataCollected.csv",
+        "filename": "C:\\Users\\Tabo\\Desktop\\SNBC_23-Sensor\\dataCollected.csv",
+        "filenameType": "str",
+        "appendNewline": false,
+        "createDir": false,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 1090,
+        "y": 420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2f9e28908c0dbafa",
+        "type": "inject",
+        "z": "029b4e24288770d8",
+        "name": "Monday at 00:00",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "from",
+                "v": "admin@go-atom.com",
+                "vt": "str"
+            },
+            {
+                "p": "timestamp",
+                "v": "",
+                "vt": "date"
+            }
+        ],
+        "repeat": "",
+        "crontab": "00 00 * * 1",
+        "once": false,
+        "onceDelay": "0",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 130,
+        "y": 760,
+        "wires": [
+            [
+                "af9393f49841ae0a",
+                "527d44d93aabb6ce"
+            ]
+        ]
+    },
+    {
+        "id": "af9393f49841ae0a",
+        "type": "function",
+        "z": "029b4e24288770d8",
+        "name": "Attaching dataCollected.csv",
+        "func": "var dateObj = new Date(msg.payload);\nvar timeISO = dateObj.toISOString();\nlet fileName = \"sensorsDataUpdatedTo\" + timeISO + \".csv\";\nlet new_msg={\n    topic: 'ALL SENSORS DATA OF MILAN',\n    payload: \"Data collected until today: \" + timeISO,\n    from: msg.from,\n    attachments: [\n        {   // file on disk as an attachment\n        filename: fileName,\n            path: 'C:/Users/Tabo/Desktop/SNBC_23-Sensor/dataCollected.csv' // stream this file\n        }\n    ]\n}\nreturn new_msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 440,
+        "y": 760,
+        "wires": [
+            [
+                "379fe83d04e74ef2"
+            ]
+        ]
+    },
+    {
+        "id": "5946e853fe87936c",
+        "type": "csv",
+        "z": "029b4e24288770d8",
+        "name": "",
+        "sep": ",",
+        "hdrin": "",
+        "hdrout": "once",
+        "multi": "one",
+        "ret": "\\n",
+        "temp": "id_sensor,type,time,dayOfWeek,date,mean",
+        "skip": "0",
+        "strings": false,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 810,
+        "y": 520,
+        "wires": [
+            [
+                "7e9547d3bb754b22"
+            ]
+        ]
+    },
+    {
+        "id": "7e9547d3bb754b22",
+        "type": "file",
+        "z": "029b4e24288770d8",
+        "name": "Storing meandCollected.csv",
+        "filename": "C:\\Users\\Tabo\\Desktop\\SNBC_23-Sensor\\meanCollected.csv",
+        "filenameType": "str",
+        "appendNewline": false,
+        "createDir": false,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 1060,
+        "y": 520,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b09bcbfc7f14cc9c",
+        "type": "e-mail",
+        "z": "029b4e24288770d8",
+        "server": "mail.smtp2go.com",
+        "port": "2525",
+        "authtype": "BASIC",
+        "saslformat": true,
+        "token": "oauth2Response.access_token",
+        "secure": false,
+        "tls": true,
+        "name": "99checco99@gmail.com",
+        "dname": "",
+        "x": 450,
+        "y": 840,
+        "wires": []
+    },
+    {
+        "id": "527d44d93aabb6ce",
+        "type": "function",
+        "z": "029b4e24288770d8",
+        "name": "Attaching meanCollected.csv",
+        "func": "var dateObj = new Date(msg.payload);\nvar timeISO = dateObj.getDate()+\"-\"+(dateObj.getMonth()+1)+\"-\"+dateObj.getFullYear();\nlet fileName = \"meanData\" + timeISO + \".csv\";\nlet new_msg={\n    topic: 'LAST WEEK HOURLY MEAN SENSORS DATA OF MILAN',\n    payload: \"Data collected this week: \" + timeISO,\n    from: msg.from,\n    attachments: [\n        {   // file on disk as an attachment\n        filename: fileName,\n            path: 'C:/Users/Tabo/Desktop/SNBC_23-Sensor/meanCollected.csv' // stream this file\n        }\n    ]\n}\nreturn new_msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 240,
+        "y": 980,
+        "wires": [
+            [
+                "8fa2a6f81b6bde7c",
+                "b09bcbfc7f14cc9c"
+            ]
+        ]
+    },
+    {
+        "id": "af9569a282abf8cd",
+        "type": "function",
+        "z": "029b4e24288770d8",
+        "name": "Computing Hourly Mean",
+        "func": "\nlet data = msg.payload;\nlet final_sum=[];\nlet found = false;\nfor (let index = 0; index < data.length; index++) {\n    found = false;\n    for (let j = 0; j < final_sum.length && found == false; j++) {\n        if ((final_sum[j]).id_sensor == (data[index]).id_sensor){\n            if ((final_sum[j]).slots[(data[index]).time]==0){\n                let hour_slot = {\n                    sum: (data[index]).mean,\n                    counter: 1\n                };\n                (final_sum[j]).slots[(data[index]).time] = hour_slot;\n            } else {\n                let hour_slot = (final_sum[j]).slots[(data[index]).time];\n                hour_slot.counter++;\n                hour_slot.sum += (data[index]).mean;\n            }\n            found = true\n        }        \n    }\n    if (!found){\n        let hour_slot = {\n            sum: (data[index]).mean,\n            counter: 1\n        };\n        let insert = {\n            id_sensor: (data[index]).id_sensor,\n            slots: new Array(24).fill(0)\n        };\n        insert.slots[(data[index]).time] = hour_slot;\n        final_sum.push(insert);\n    }\n}\n\nlet final_mean = [];\nfor (let index = 0; index < final_sum.length; index++) {\n    let hour_slots = (final_sum[index]).slots;\n    let item={\n        id_sensor: (final_sum[index]).id_sensor,\n    };\n    for (let i=0; i<hour_slots.length; i++){\n        if (hour_slots[i] !=0){\n            item[i] = hour_slots[i].sum / hour_slots[i].counter;\n        } else {\n            item[i] = 0;\n        }\n    }\n    final_mean.push(item);    \n}\nmsg.payload = final_mean;\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 1280,
+        "wires": [
+            [
+                "89fffa2bc07681d6",
+                "bc601465ca3cb84d"
+            ]
+        ]
+    },
+    {
+        "id": "89fffa2bc07681d6",
+        "type": "debug",
+        "z": "029b4e24288770d8",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1180,
+        "y": 1300,
+        "wires": []
+    },
+    {
+        "id": "8fa2a6f81b6bde7c",
+        "type": "file in",
+        "z": "029b4e24288770d8",
+        "name": "Read MeanCollected.csv",
+        "filename": "C:\\Users\\Tabo\\Desktop\\SNBC_23-Sensor\\meanCollected.csv",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 150,
+        "y": 1260,
+        "wires": [
+            [
+                "a0ede4b0908c9a7a"
+            ]
+        ]
+    },
+    {
+        "id": "a0ede4b0908c9a7a",
+        "type": "csv",
+        "z": "029b4e24288770d8",
+        "name": "",
+        "sep": ",",
+        "hdrin": true,
+        "hdrout": "none",
+        "multi": "mult",
+        "ret": "\\n",
+        "temp": "",
+        "skip": "0",
+        "strings": true,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 370,
+        "y": 1260,
+        "wires": [
+            [
+                "af9569a282abf8cd"
+            ]
+        ]
+    },
+    {
+        "id": "d716759248464592",
+        "type": "function",
+        "z": "029b4e24288770d8",
+        "name": "Parsing and Saving data",
+        "func": "let payload = {\n    id_sensor : null,\n    type: null,\n    time : null,\n    longitude : null,\n    latitude : null,\n    value: 0,\n};\nif (msg.payload.type == \"loudeness\") {\n    let val_loud = msg.payload.value;\n    let data = flow.get(\"data\");\n    payload.type = \"loudeness\"\n    payload.id_sensor = msg.payload.id_sensor;\n    payload.value = val_loud;\n    payload.time = msg.payload.time;\n    payload.latitude = msg.payload.latitude;\n    payload.longitude = msg.payload.longitude;\n    data.push(payload);\n    flow.set(\"data\", data);\n\n    msg.payload = payload;\n} else if (msg.payload.sensordatavalues[1].value_type == \"P2\") {\n    let val_PM25 = msg.payload.sensordatavalues[1].value;\n    let data = flow.get(\"data\");\n    \n    payload.type = \"pm25\";\n    payload.id_sensor = msg.payload.sensor.id;\n    payload.value = val_PM25;\n    //saving time in ISO format\n    payload.time = (msg.payload.timestamp).replace(\" \", \"T\") + \".000Z\";\n    payload.longitude = msg.payload.location.longitude;\n    payload.latitude = msg.payload.location.latitude;\n    data.push(payload),\n        flow.set(\"data\", data);\n    msg.payload = payload;\n}\n\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\nflow.set(\"data\",[]);",
+        "finalize": "",
+        "libs": [],
+        "x": 570,
+        "y": 360,
+        "wires": [
+            [
+                "8afd09b669f2b1da"
+            ]
+        ]
+    },
+    {
+        "id": "481bc7895cf76b26",
+        "type": "inject",
+        "z": "029b4e24288770d8",
+        "name": "day 6",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "0 0-22 * * *",
+        "once": false,
+        "onceDelay": "3600",
+        "topic": "",
+        "payload": "1688828628000",
+        "payloadType": "num",
+        "x": 130,
+        "y": 560,
+        "wires": [
+            [
+                "c164870eb9e164c3"
+            ]
+        ]
+    },
+    {
+        "id": "3995c12e764e16d2",
+        "type": "inject",
+        "z": "029b4e24288770d8",
+        "name": "day 5",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "0 0-22 * * *",
+        "once": false,
+        "onceDelay": "3600",
+        "topic": "",
+        "payload": "1688742228000",
+        "payloadType": "num",
+        "x": 130,
+        "y": 620,
+        "wires": [
+            [
+                "c164870eb9e164c3"
+            ]
+        ]
+    },
+    {
+        "id": "c7ea1fc6d2c91133",
+        "type": "file",
+        "z": "029b4e24288770d8",
+        "name": "StorehourlyMean.csv",
+        "filename": "C:\\Users\\Tabo\\Desktop\\SNBC_23-Sensor\\hourlyMean.csv",
+        "filenameType": "str",
+        "appendNewline": false,
+        "createDir": false,
+        "overwriteFile": "true",
+        "encoding": "none",
+        "x": 840,
+        "y": 960,
+        "wires": [
+            [
+                "fedeb2dcc66fb259",
+                "e45a727d57769f42"
+            ]
+        ]
+    },
+    {
+        "id": "bc601465ca3cb84d",
+        "type": "csv",
+        "z": "029b4e24288770d8",
+        "name": "",
+        "sep": ",",
+        "hdrin": "",
+        "hdrout": "once",
+        "multi": "one",
+        "ret": "\\n",
+        "temp": "id_sensor,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23",
+        "skip": "0",
+        "strings": true,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 610,
+        "y": 1020,
+        "wires": [
+            [
+                "c7ea1fc6d2c91133"
+            ]
+        ]
+    },
+    {
+        "id": "a976beb0642f7125",
+        "type": "e-mail",
+        "z": "029b4e24288770d8",
+        "server": "mail.smtp2go.com",
+        "port": "2525",
+        "authtype": "BASIC",
+        "saslformat": true,
+        "token": "oauth2Response.access_token",
+        "secure": false,
+        "tls": true,
+        "name": "99checco99@gmail.com",
+        "dname": "",
+        "x": 1090,
+        "y": 1180,
+        "wires": []
+    },
+    {
+        "id": "bca5572c47227884",
+        "type": "file",
+        "z": "029b4e24288770d8",
+        "name": "Delete hourly data",
+        "filename": "C:\\Users\\Tabo\\Desktop\\SNBC_23-Sensor\\meanCollected.csv",
+        "filenameType": "str",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "true",
+        "encoding": "none",
+        "x": 1250,
+        "y": 820,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "fedeb2dcc66fb259",
+        "type": "function",
+        "z": "029b4e24288770d8",
+        "name": "Attaching hourlyMean.csv",
+        "func": "let fileName = \"LWHM\" + \".csv\";\nlet new_msg={\n    topic: 'Hourly mean data of the last week',\n    payload: \"Data collected until today.\",\n    from: 'admin@go-atom.com',\n    attachments: [\n        {   // file on disk as an attachment\n        filename: fileName,\n            path: 'C:/Users/Tabo/Desktop/SNBC_23-Sensor/hourlyMean.csv' // stream this file\n        }\n    ]\n}\nreturn new_msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1010,
+        "y": 1040,
+        "wires": [
+            [
+                "a976beb0642f7125"
+            ]
+        ]
+    },
+    {
+        "id": "342d85e3ce2c0559",
+        "type": "function",
+        "z": "029b4e24288770d8",
+        "name": "Resetting MeanCollected.csv",
+        "func": "msg.payload = 'id_sensor,type,time,dayOfWeek,date,mean';\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 960,
+        "y": 820,
+        "wires": [
+            [
+                "bca5572c47227884"
+            ]
+        ]
+    },
+    {
+        "id": "e45a727d57769f42",
+        "type": "delay",
+        "z": "029b4e24288770d8",
+        "name": "Waiting Delivery Mail",
+        "pauseType": "delay",
+        "timeout": "10",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1100,
+        "y": 920,
+        "wires": [
+            [
+                "342d85e3ce2c0559"
+            ]
+        ]
+    },
+    {
+        "id": "3b113dd449ad2af0",
+        "type": "file in",
+        "z": "ff394802d22b8f3a",
+        "name": "Noise Source",
+        "filename": "C:\\Users\\Tabo\\Desktop\\SNBC_23-Sensor\\random_values.csv",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 420,
+        "y": 120,
+        "wires": [
+            [
+                "fa53c67ffe66b202"
+            ]
+        ]
+    },
+    {
+        "id": "46fe880d750dd7fd",
+        "type": "inject",
+        "z": "ff394802d22b8f3a",
+        "name": "Randominzing Data",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 180,
+        "y": 120,
+        "wires": [
+            [
+                "3b113dd449ad2af0"
+            ]
+        ]
+    },
+    {
+        "id": "b97efdc7bd2a48b7",
+        "type": "debug",
+        "z": "ff394802d22b8f3a",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1060,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "fa53c67ffe66b202",
+        "type": "csv",
+        "z": "ff394802d22b8f3a",
+        "name": "",
+        "sep": ",",
+        "hdrin": true,
+        "hdrout": "none",
+        "multi": "mult",
+        "ret": "\\n",
+        "temp": "",
+        "skip": "0",
+        "strings": true,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 610,
+        "y": 120,
+        "wires": [
+            [
+                "510733708fd69c74"
+            ]
+        ]
+    },
+    {
+        "id": "510733708fd69c74",
+        "type": "function",
+        "z": "ff394802d22b8f3a",
+        "name": "Setting noise to Context",
+        "func": "flow.set(\"sensor_data\", msg.payload);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 810,
+        "y": 120,
+        "wires": [
+            [
+                "b97efdc7bd2a48b7"
+            ]
+        ]
+    },
+    {
+        "id": "f85f9f1172e5349f",
+        "type": "inject",
+        "z": "ff394802d22b8f3a",
         "name": "Sensor 1 (Città Studi)",
         "props": [
             {
@@ -48,217 +765,37 @@
         "topic": "Sensor 1",
         "payload": "",
         "payloadType": "str",
-        "x": 260,
-        "y": 440,
+        "x": 300,
+        "y": 340,
         "wires": [
             [
-                "27204d2869e15695"
+                "584b0d44717a4262"
             ]
         ]
     },
     {
-        "id": "27204d2869e15695",
+        "id": "584b0d44717a4262",
         "type": "function",
-        "z": "c87d0832ae5295be",
-        "name": "function 4",
-        "func": "let index = msg.timestamp % 1000;\nlet payload ={\n    id_sensor: msg.id_sensor,\n    type: \"loudeness\",\n    timestamp: msg.timestamp,\n    latitude: msg.latitude,\n    longitude: msg.longitude,\n    value: flow.get(\"sensor_data\")[index].value\n}\n\nlet new_msg={\n    _msgid: msg._msgid,\n    topic: msg.topic,\n    payload: payload\n}\n\n\nlet data = flow.get(\"data\");\ndata.push(payload);\nflow.set(\"data\", data);\n\nreturn new_msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 460,
-        "y": 460,
-        "wires": [
-            [
-                "178e9a924351aaba"
-            ]
-        ]
-    },
-    {
-        "id": "8cc791403b0ce14d",
-        "type": "file in",
-        "z": "c87d0832ae5295be",
-        "name": "",
-        "filename": "C:\\Users\\Tabo\\Desktop\\Smart\\random_values.csv",
-        "filenameType": "str",
-        "format": "utf8",
-        "chunk": false,
-        "sendError": false,
-        "encoding": "none",
-        "allProps": false,
-        "x": 570,
-        "y": 180,
-        "wires": [
-            [
-                "83aa963ad5e810d2"
-            ]
-        ]
-    },
-    {
-        "id": "bdad9aea5326c757",
-        "type": "inject",
-        "z": "c87d0832ae5295be",
-        "name": "",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": true,
-        "onceDelay": "0",
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 250,
-        "y": 160,
-        "wires": [
-            [
-                "8cc791403b0ce14d"
-            ]
-        ]
-    },
-    {
-        "id": "b166e96a169c4e98",
-        "type": "debug",
-        "z": "c87d0832ae5295be",
-        "name": "debug 2",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1140,
-        "y": 160,
-        "wires": []
-    },
-    {
-        "id": "4a720de9a2b9e667",
-        "type": "mqtt in",
-        "z": "c87d0832ae5295be",
-        "name": "",
-        "topic": "/smartcity/milan",
-        "qos": "2",
-        "datatype": "auto-detect",
-        "broker": "6f82b521179c2fba",
-        "nl": false,
-        "rap": true,
-        "rh": 0,
-        "inputs": 0,
-        "x": 340,
-        "y": 320,
-        "wires": [
-            [
-                "744f3195d7b49dba"
-            ]
-        ]
-    },
-    {
-        "id": "8e816ab2afc8d325",
-        "type": "debug",
-        "z": "c87d0832ae5295be",
-        "name": "debug 1",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 780,
-        "y": 320,
-        "wires": []
-    },
-    {
-        "id": "744f3195d7b49dba",
-        "type": "function",
-        "z": "c87d0832ae5295be",
-        "name": "function 1",
-        "func": "let payload = {\n    id_sensor : null,\n    type: \"pm25\",\n    timestamp : null,\n    longitude : null,\n    latitude : null,\n    value: 0,\n};\n\n\nif (msg.payload.sensordatavalues[1].value_type == \"P2\") {\n    let val_PM25 = msg.payload.sensordatavalues[1].value;\n    let data = flow.get(\"data\");\n\n    //let id = msg.payload.sensor.id;\n    // if (!sensors.includes(id)) {\n    //     sensors.push(id);\n    //     flow.set(\"sensors_id\", sensors);\n    // }\n\n    payload.id_sensor = msg.payload.sensor.id;\n    payload.value = val_PM25;\n    payload.timestamp = msg.payload.timestamp;\n    payload.longitude = msg.payload.location.longitude;\n    payload.latitude = msg.payload.location.latitude;\n    data.push(payload),\n    flow.set(\"data\", data);\n\n    msg.payload = payload;\n    return msg;\n}\n",
+        "z": "ff394802d22b8f3a",
+        "name": "Sensing",
+        "func": "let index = msg.timestamp % 1000;\nvar dateObj = new Date(msg.timestamp);\nvar timeISO = dateObj.toISOString();\n\nlet payload ={\n    id_sensor: msg.id_sensor,\n    type: \"loudeness\",\n    time: timeISO,\n    latitude: msg.latitude,\n    longitude: msg.longitude,\n    value: flow.get(\"sensor_data\")[index].value\n}\n\nlet new_msg={\n    _msgid: msg._msgid,\n    topic: msg.topic,\n    payload: payload\n}\n\nreturn new_msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
         "x": 560,
-        "y": 320,
+        "y": 340,
         "wires": [
             [
-                "8e816ab2afc8d325"
+                "a793ae0e64e302de"
             ]
         ]
     },
     {
-        "id": "83aa963ad5e810d2",
-        "type": "csv",
-        "z": "c87d0832ae5295be",
-        "name": "",
-        "sep": ",",
-        "hdrin": true,
-        "hdrout": "none",
-        "multi": "mult",
-        "ret": "\\n",
-        "temp": "",
-        "skip": "0",
-        "strings": true,
-        "include_empty_strings": "",
-        "include_null_values": "",
-        "x": 910,
-        "y": 220,
-        "wires": [
-            [
-                "45134195ef1088ce"
-            ]
-        ]
-    },
-    {
-        "id": "45134195ef1088ce",
-        "type": "function",
-        "z": "c87d0832ae5295be",
-        "name": "function 5",
-        "func": "flow.set(\"sensor_data\", msg.payload);\nreturn msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "initialize": "// Code added here will be run once\n// whenever the node is started.\nflow.set(\"counter\",0);\nflow.set(\"data\",[]);\n",
-        "finalize": "",
-        "libs": [],
-        "x": 1100,
-        "y": 260,
-        "wires": [
-            [
-                "b166e96a169c4e98"
-            ]
-        ]
-    },
-    {
-        "id": "178e9a924351aaba",
-        "type": "debug",
-        "z": "c87d0832ae5295be",
-        "name": "debug 3",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 700,
-        "y": 440,
-        "wires": []
-    },
-    {
-        "id": "bebd36cebca1b59f",
+        "id": "2707d218bd5c44a5",
         "type": "inject",
-        "z": "c87d0832ae5295be",
+        "z": "ff394802d22b8f3a",
         "name": "Sensor 2 (Duomo)",
         "props": [
             {
@@ -296,54 +833,55 @@
         "topic": "Sensor 1",
         "payload": "",
         "payloadType": "str",
-        "x": 270,
-        "y": 540,
+        "x": 290,
+        "y": 400,
         "wires": [
             [
-                "58f4795f33363ce3"
+                "556f2a592c914d89"
             ]
         ]
     },
     {
-        "id": "58f4795f33363ce3",
+        "id": "556f2a592c914d89",
         "type": "function",
-        "z": "c87d0832ae5295be",
-        "name": "function 6",
-        "func": "let index = msg.timestamp % 1000;\nlet payload = {\n    id_sensor: msg.id_sensor,\n    type: \"loudeness\",\n    timestamp: msg.timestamp,\n    latitude: msg.latitude,\n    longitude: msg.longitude,\n    value: flow.get(\"sensor_data\")[index].value\n}\n\nlet new_msg = {\n    _msgid: msg._msgid,\n    topic: msg.topic,\n    payload: payload\n}\n\n\nlet data = flow.get(\"data\");\ndata.push(payload);\nflow.set(\"data\", data);\n\nreturn new_msg;",
+        "z": "ff394802d22b8f3a",
+        "name": "Sensing",
+        "func": "let index = msg.timestamp % 1000;\nvar dateObj = new Date(msg.timestamp);\nvar timeISO = dateObj.toISOString();\n\nlet payload ={\n    id_sensor: msg.id_sensor,\n    type: \"loudeness\",\n    time: timeISO,\n    latitude: msg.latitude,\n    longitude: msg.longitude,\n    value: flow.get(\"sensor_data\")[index].value\n}\n\nlet new_msg={\n    _msgid: msg._msgid,\n    topic: msg.topic,\n    payload: payload\n}\n\nreturn new_msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 460,
-        "y": 540,
+        "x": 560,
+        "y": 400,
         "wires": [
             [
-                "027ce9fa30a2a4f8"
+                "65a0c7d6b8b99b76"
             ]
         ]
     },
     {
-        "id": "027ce9fa30a2a4f8",
-        "type": "debug",
-        "z": "c87d0832ae5295be",
-        "name": "debug 4",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 600,
-        "y": 540,
+        "id": "05c9bb769e666c9c",
+        "type": "mqtt out",
+        "z": "ff394802d22b8f3a",
+        "name": "LocalSensorDataSender",
+        "topic": "/smartcity/milan",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "6f82b521179c2fba",
+        "x": 810,
+        "y": 460,
         "wires": []
     },
     {
-        "id": "2e39fdbea22e53cc",
+        "id": "c1c05d6c4bad48db",
         "type": "inject",
-        "z": "c87d0832ae5295be",
+        "z": "ff394802d22b8f3a",
         "name": "Sensor 3 (Portello)",
         "props": [
             {
@@ -377,159 +915,71 @@
         "repeat": "300",
         "crontab": "",
         "once": true,
-        "onceDelay": "47",
+        "onceDelay": "133",
         "topic": "Sensor 3",
         "payload": "",
         "payloadType": "str",
         "x": 280,
-        "y": 620,
+        "y": 460,
         "wires": [
             [
-                "cad340dd2010f809"
+                "e2b9d34265a9623d"
             ]
         ]
     },
     {
-        "id": "cad340dd2010f809",
+        "id": "e2b9d34265a9623d",
         "type": "function",
-        "z": "c87d0832ae5295be",
-        "name": "function 7",
-        "func": "let index = msg.timestamp % 1000;\nlet payload = {\n    id_sensor: msg.id_sensor,\n    type: \"loudeness\",\n    timestamp: msg.timestamp,\n    latitude: msg.latitude,\n    longitude: msg.longitude,\n    value: flow.get(\"sensor_data\")[index].value\n}\n\nlet new_msg = {\n    _msgid: msg._msgid,\n    topic: msg.topic,\n    payload: payload\n}\n\n\nlet data = flow.get(\"data\");\ndata.push(payload);\nflow.set(\"data\", data);\n\nreturn new_msg;",
+        "z": "ff394802d22b8f3a",
+        "name": "Sensing",
+        "func": "let index = msg.timestamp % 1000;\nvar dateObj = new Date(msg.timestamp);\nvar timeISO = dateObj.toISOString();\n\nlet payload ={\n    id_sensor: msg.id_sensor,\n    type: \"loudeness\",\n    time: timeISO,\n    latitude: msg.latitude,\n    longitude: msg.longitude,\n    value: flow.get(\"sensor_data\")[index].value\n}\n\nlet new_msg={\n    _msgid: msg._msgid,\n    topic: msg.topic,\n    payload: payload\n}\n\nreturn new_msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 460,
-        "y": 620,
+        "x": 540,
+        "y": 460,
         "wires": [
             [
-                "e72eb14d9a4c38f4"
+                "05c9bb769e666c9c"
             ]
         ]
     },
     {
-        "id": "e72eb14d9a4c38f4",
-        "type": "debug",
-        "z": "c87d0832ae5295be",
-        "name": "debug 5",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 600,
-        "y": 620,
-        "wires": []
-    },
-    {
-        "id": "be632dcf2dab05c0",
-        "type": "inject",
-        "z": "c87d0832ae5295be",
-        "name": "",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
-            }
-        ],
-        "repeat": "3600",
-        "crontab": "",
-        "once": true,
-        "onceDelay": "3600",
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 230,
-        "y": 720,
-        "wires": [
-            [
-                "e878383b3e0ef985"
-            ]
-        ]
-    },
-    {
-        "id": "e878383b3e0ef985",
-        "type": "function",
-        "z": "c87d0832ae5295be",
-        "name": "function 8",
-        "func": "msg.payload=flow.get(\"data\");\nflow.set(\"data\",[]);\nreturn msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 440,
-        "y": 720,
-        "wires": [
-            [
-                "71b4664ea4d5fd5a"
-            ]
-        ]
-    },
-    {
-        "id": "d30777b5b88b866e",
-        "type": "debug",
-        "z": "c87d0832ae5295be",
-        "name": "debug 6",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 940,
-        "y": 620,
-        "wires": []
-    },
-    {
-        "id": "71b4664ea4d5fd5a",
-        "type": "json",
-        "z": "c87d0832ae5295be",
-        "name": "",
-        "property": "payload",
-        "action": "",
-        "pretty": false,
-        "x": 590,
-        "y": 720,
-        "wires": [
-            [
-                "d30777b5b88b866e"
-            ]
-        ]
-    },
-    {
-        "id": "6f82b521179c2fba",
-        "type": "mqtt-broker",
-        "name": "",
-        "broker": "mqtt.neslab.it",
-        "port": "3200",
-        "clientid": "",
-        "autoConnect": true,
-        "usetls": false,
-        "protocolVersion": "4",
-        "keepalive": "60",
-        "cleansession": true,
-        "birthTopic": "",
-        "birthQos": "0",
-        "birthPayload": "",
-        "birthMsg": {},
-        "closeTopic": "",
-        "closeQos": "0",
-        "closePayload": "",
-        "closeMsg": {},
-        "willTopic": "",
-        "willQos": "0",
-        "willPayload": "",
-        "willMsg": {},
+        "id": "65a0c7d6b8b99b76",
+        "type": "mqtt out",
+        "z": "ff394802d22b8f3a",
+        "name": "LocalSensorDataSender",
+        "topic": "/smartcity/milan",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
         "userProps": "",
-        "sessionExpiry": ""
+        "correl": "",
+        "expiry": "",
+        "broker": "6f82b521179c2fba",
+        "x": 830,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "a793ae0e64e302de",
+        "type": "mqtt out",
+        "z": "ff394802d22b8f3a",
+        "name": "LocalSensorDataSender",
+        "topic": "/smartcity/milan",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "6f82b521179c2fba",
+        "x": 850,
+        "y": 340,
+        "wires": []
     }
 ]
